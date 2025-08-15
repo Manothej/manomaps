@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ManoMaps</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  html, body { height: 100%; margin: 0; padding: 0; }
+  #map { height: 100%; width: 100%; }
+  #controls {
+    position: absolute;
+    top: 10px; left: 10px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.9);
+    padding: 10px; border-radius: 5px;
+    box-shadow: 0 0 5px #999;
+    font-family: Arial, sans-serif;
+  }
+  #controls input { width: 250px; padding: 5px; margin-right: 5px; }
+  #distance { margin-top: 5px; font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="controls">
+  <input type="text" id="search" placeholder="Enter location">
+  <button id="searchBtn">Search</button>
+  <div id="distance"></div>
+</div>
+
+<script>
+  const defaultLat = 18.4386, defaultLng = 79.1288;
+
+  function loadLeaflet() {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet/dist/leaflet.js';
+    script.onload = initMap;
+    document.body.appendChild(script);
+  }
+
+  function initMap() {
+    const map = L.map('map').setView([defaultLat, defaultLng], 3);
+
+    const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
+    const terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: 'OpenTopoMap' });
+
+    const baseMaps = { "Street": street, "Satellite": satellite, "Terrain": terrain };
+    L.control.layers(baseMaps).addTo(map);
+
+    let currentMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map).bindPopup("Current Location").openPopup();
+    let destMarker;
+
+    // Sample global locations (expand as needed)
+    const locations = {
+      "Karimnagar":[18.4386,79.1288],
+      "Hyderabad":[17.3850,78.4867],
+      "New York":[40.7128,-74.0060],
+      "London":[51.5074,-0.1278],
+      "Paris":[48.8566,2.3522],
+      "Tokyo":[35.6762,139.6503],
+      "Sydney":[-33.8688,151.2093],
+      "Cairo":[30.0444,31.2357],
+      "Rio de Janeiro":[-22.9068,-43.1729],
+      "Cape Town":[-33.9249,18.4241],
+      "Nile River":[30.0444,31.2357],
+      "Amazon River":[-3.4653,-62.2159],
+      "Lake Victoria":[-1.0,33.0],
+      "Lake Superior":[47.7,-87.5],
+      "Mount Everest":[27.9881,86.9250],
+      "Grand Canyon":[36.1069,-112.1129]
+      // Add more locations here for global coverage
+    };
+
+    document.getElementById('searchBtn').onclick = function() {
+      const query = document.getElementById('search').value.trim();
+      if (!query || !locations[query]) {
+        alert("Location not found! Try one of:\n" + Object.keys(locations).join(", "));
+        return;
+      }
+      const [lat, lng] = locations[query];
+
+      if (destMarker) map.removeLayer(destMarker);
+      destMarker = L.marker([lat, lng]).addTo(map).bindPopup("Destination").openPopup();
+      map.setView([lat, lng], 5);
+
+      const distance = map.distance(currentMarker.getLatLng(), L.latLng(lat, lng));
+      document.getElementById('distance').innerText = `Distance: ${(distance/1000).toFixed(2)} km`;
+    };
+
+    currentMarker.on('dragend', function(e){
+      if (!destMarker) return;
+      const pos = e.target.getLatLng();
+      const distance = map.distance(pos, destMarker.getLatLng());
+      document.getElementById('distance').innerText = `Distance: ${(distance/1000).toFixed(2)} km`;
+    });
+  }
+
+  loadLeaflet();
+</script>
+</body>
+</html>
